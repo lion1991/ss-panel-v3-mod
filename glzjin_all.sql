@@ -628,3 +628,29 @@ INSERT INTO `ss_node` (`id`, `name`, `type`, `server`, `method`, `info`, `status
 (NULL, '智能线路（速度） - Shadowsocks', 1, 'smart.zhaoj.in', 'aes-256-cfb', '智能线路，注重速度。', '可用', 0, 1, 1, 0, 0, 0, 0, 0, 0, 1461851943, NULL),
 (NULL, '智能线路（延时） - Shadowsocks', 1, 'smart.zhaoj.in', 'aes-256-cfb', '智能线路，降低延时。', '可用', 0, 1, 1, 0, 0, 0, 0, 0, 0, 1461851943, NULL);
 
+
+ALTER TABLE `user` ADD `node_group` INT NOT NULL DEFAULT '0' AFTER `remark`;
+ALTER TABLE `ss_node` ADD `node_group` INT NOT NULL DEFAULT '0' AFTER `node_ip`;
+
+
+ALTER TABLE `smartline` ADD `node_group` INT NOT NULL DEFAULT '0' AFTER `c_id`;
+
+
+CREATE TABLE `payback` ( `id` BIGINT NOT NULL AUTO_INCREMENT , `total` DECIMAL(12,2) NOT NULL , `userid` BIGINT NOT NULL , `ref_by` BIGINT NOT NULL , `ref_get` DECIMAL(12,2) NOT NULL , `datetime` BIGINT NOT NULL , PRIMARY KEY (`id`)) ENGINE = InnoDB;
+CREATE TABLE `shop` ( `id` BIGINT NOT NULL AUTO_INCREMENT , `name` TEXT NOT NULL , `price` DECIMAL(12,2) NOT NULL , `content` TEXT NOT NULL , `auto_renew` INT NOT NULL , PRIMARY KEY (`id`)) ENGINE = InnoDB;
+CREATE TABLE `coupon` ( `id` BIGINT NOT NULL AUTO_INCREMENT , `code` TEXT NOT NULL , `onetime` INT NOT NULL , `expire` BIGINT NOT NULL , `shop` TEXT NOT NULL , `credit` INT NOT NULL , PRIMARY KEY (`id`)) ENGINE = InnoDB;
+CREATE TABLE `bought` ( `id` BIGINT NOT NULL AUTO_INCREMENT , `userid` BIGINT NOT NULL , `shopid` BIGINT NOT NULL , `datetime` BIGINT NOT NULL , `renew` INT NOT NULL , PRIMARY KEY (`id`)) ENGINE = InnoDB;
+
+ALTER TABLE `bought` ADD `coupon` TEXT NOT NULL AFTER `renew`, ADD `price` DECIMAL(12,2) NOT NULL AFTER `coupon`;
+
+
+
+ALTER TABLE `bought` CHANGE `renew` `renew` BIGINT(11) NOT NULL;
+
+ALTER TABLE `announcement` ADD `markdown` LONGTEXT NOT NULL AFTER `content`;
+
+ALTER TABLE `announcement` CHANGE `content` `content` LONGTEXT CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;
+
+CREATE TABLE `ticket` ( `id` BIGINT NOT NULL AUTO_INCREMENT , `title` LONGTEXT NOT NULL , `content` LONGTEXT NOT NULL , `rootid` BIGINT NOT NULL , `userid` BIGINT NOT NULL , `datetime` BIGINT NOT NULL , PRIMARY KEY (`id`)) ENGINE = InnoDB;
+
+ALTER TABLE `ticket` ADD `status` INT NOT NULL DEFAULT '1' AFTER `datetime`;

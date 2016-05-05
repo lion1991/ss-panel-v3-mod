@@ -169,7 +169,7 @@ class AuthController extends BaseController
 		$user = User::where('im_value',$wechat)->where('im_type',$imtype)->first();
         if ( $user != null) {
             $res['ret'] = 0;
-            $res['msg'] = "此微信号已经被注册了";
+            $res['msg'] = "此联络方式已经被注册了";
             return $response->getBody()->write(json_encode($res));
         }
 
@@ -196,6 +196,11 @@ class AuthController extends BaseController
 		$user->plan='A';
 		$user->node_speedlimit=0;
 		$user->theme=Config::get('theme');
+		
+		$group=Config::get('ramdom_group');
+		$Garray=explode(",",$group);
+		
+		$user->node_group=$group[rand(0,count($group)-1)];
 		
 		$ga = new GA();
 		$secret = $ga->createSecret();

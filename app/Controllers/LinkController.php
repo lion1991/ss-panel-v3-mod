@@ -7,6 +7,7 @@ namespace App\Controllers;
 
 use App\Models\Link;
 use App\Models\User;
+use App\Models\Node;
 use App\Models\Smartline;
 use App\Utils\Tools;
 use App\Services\Config;
@@ -68,7 +69,7 @@ class LinkController extends BaseController
 	
 	public static function GenerateSurgeCode($address,$port,$userid,$geo,$method)
     {
-        $Elink = Link::where("type","=",6)->where("address","=",$address)->where("port","=",$port)->where("userid","=",$userid)->where("geo","=",$geo)->where("method","=",$method)->first();
+        $Elink = Link::where("type","=",0)->where("address","=",$address)->where("port","=",$port)->where("userid","=",$userid)->where("geo","=",$geo)->where("method","=",$method)->first();
 		if($Elink != null)
 		{
 			return $Elink->token;
@@ -87,7 +88,26 @@ class LinkController extends BaseController
 		return $NLink->token;
     }
 	
-	
+	public static function GenerateIosCode($address,$port,$userid,$geo,$method)
+    {
+        $Elink = Link::where("type","=",-1)->where("address","=",$address)->where("port","=",$port)->where("userid","=",$userid)->where("geo","=",$geo)->where("method","=",$method)->first();
+		if($Elink != null)
+		{
+			return $Elink->token;
+		}
+		$NLink = new Link();
+		$NLink->type = -1;
+		$NLink->address = $address;
+		$NLink->port = $port;
+		$NLink->ios = 1;
+		$NLink->geo = $geo;
+		$NLink->method = $method;
+		$NLink->userid = $userid;
+		$NLink->token = Tools::genRandomChar(8);
+		$NLink->save();
+		
+		return $NLink->token;
+    }
 	
 	public static function GetContent($request, $response, $args){
         $token = $args['token'];
@@ -101,6 +121,16 @@ class LinkController extends BaseController
 		
 		switch($Elink->type)
 		{
+			case -1:
+				$user=User::where("id",$Elink->userid)->first();
+				$newResponse = $response->withHeader('Content-type', ' application/octet-stream')->withHeader('Content-Disposition', ' attachment; filename=allinone.conf');//->getBody()->write($builder->output());
+				$newResponse->getBody()->write(LinkController::GetIosConf(Node::where('sort', 0)->where("id","<>",Config::get('cloudxns_ping_nodeid'))->where("id","<>",Config::get('cloudxns_speed_nodeid'))->where(
+					function ($query) {
+						$query->where("node_group","=",$user->node_group)
+							->orWhere("node_group","=",0);
+					}
+				)->where("node_class","<=",$user->class)->get(),$user));
+				return $newResponse;
 			case 3:
 				$type = "PROXY";
 				break;
@@ -218,7 +248,7 @@ class LinkController extends BaseController
 				
 				$node->server=$smt->domain_prefix.".".Config::get("cloudxns_prefix").".".Config::get("cloudxns_domain");
 			}
-			$proxy_group.=$node->name.' = custom,'.$node->server.','.$user->port.','.($node->custom_method==1?$user->method:$node->method).','.$user->passwd.','.Config::get('baseUrl').'/downloads/ss.module'."\n";
+			$proxy_group.=$node->name.' = custom,'.$node->server.','.$user->port.','.($node->custom_method==1?$user->method:$node->method).','.$user->passwd.','.Config::get('baseUrl').'/downloads/SSEncrypt.module'."\n";
 			$proxy_name.=",".$node->name;
 		}
 		
@@ -237,7 +267,6 @@ loglevel = notify
 
 [Proxy]
 DIRECT = direct
-
 '.$proxy_group.'
 
 [Proxy Group]
@@ -601,7 +630,7 @@ dns-server = 119.29.29.29, 223.5.5.5, 114.114.114.114
 loglevel = notify
 
 [Proxy]
-Proxy = custom,'.$server.','.$port.','.$method.','.$passwd.','.Config::get('baseUrl').'/downloads/ss.module
+Proxy = custom,'.$server.','.$port.','.$method.','.$passwd.','.Config::get('baseUrl').'/downloads/SSEncrypt.module
 
 [Rule]
 DOMAIN-KEYWORD,adsmogo,REJECT
@@ -854,7 +883,7 @@ loglevel = notify
 
 [Proxy]
 
-Proxy = custom,'.$server.','.$port.','.$method.','.$passwd.','.Config::get('baseUrl').'/downloads/ss.module
+Proxy = custom,'.$server.','.$port.','.$method.','.$passwd.','.Config::get('baseUrl').'/downloads/SSEncrypt.module
 
 
 
@@ -1280,7 +1309,7 @@ FINAL,Proxy';
 	/** 
 	 * This is a php implementation of autoproxy2pac 
 	 */  
-	function reg_encode($str) {  
+	private static function reg_encode($str) {  
 	  $tmp_str = $str;  
 	  $tmp_str = str_replace('/', "\\/", $tmp_str);  
 	  $tmp_str = str_replace('.', "\\.", $tmp_str);  
@@ -1295,7 +1324,7 @@ FINAL,Proxy';
 	  return $tmp_str;  
 	}  
 	  
-	function get_pac($proxy_type, $proxy_host, $proxy_port, $proxy_google,$defined) {  
+	private static function get_pac($proxy_type, $proxy_host, $proxy_port, $proxy_google,$defined) {  
 	  $rulelist = base64_decode(file_get_contents("https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt"))."\n".$defined;  
 	  $gfwlist = explode("\n", $rulelist);  
 	  if ($proxy_google == "true") {  
